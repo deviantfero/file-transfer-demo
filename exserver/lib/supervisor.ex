@@ -2,7 +2,7 @@ defmodule Exserver.Supervisor do
   use Supervisor
 
   def start_link(_) do
-    {:ok, _pid} = Supervisor.start_link(__MODULE__, [], name: :supervisor)
+    {:ok, _pid} = Supervisor.start_link(__MODULE__, %{}, name: :supervisor)
   end
 
   def init(_) do
