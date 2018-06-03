@@ -20,19 +20,35 @@ defmodule WebsocketHandler do
     {:ok, %{"uuid" => uuid, "type" => type}} = Poison.decode(content)
     cond do
       type == "register" -> handle_register(uuid, state)
-      type == "get_peer" -> assign_peer(uuid, state)
+      type == "getpeer" -> handle_getpeer(uuid, state)
+      true -> {:ok, state}
     end
   end
 
-  def assign_peer(uuid, state) do
-    caller = Agent.get(__MODULE__, &Map.get_in(&1, [uuid]))
-    callee = Agent.get(__MODULE__, &Enum.random(&1))
+  def handle_getpeer(uuid, state) do
+    available_clients = ChatClients.get_clients("available")
+    candidates = Enum.filter(available_clients, fn {k, _} -> k != uuid end)
+
+    {c_uuid, callee} = candidates |> Enum.random
+    {_, caller} = available_clients |> Enum.find(fn {k, _} -> k == uuid end)
+
+    ChatClients.assign_target(uuid, callee[:pid])
+    ChatClients.assign_target(c_uuid, caller[:pid])
+    Enum.each([uuid, c_uuid], &ChatClients.mark_client_as(&1, "busy"))
+
+    {:ok, response} = Poison.encode(%{
+      "peersAvailable" => ChatClients.get_client_count("available")
+    })
+
+    IO.inspect ChatClients.get_clients("busy")
+    ChatClients.broadcast_message(response)
+    {:ok, state}
   end
 
   def handle_register(uuid, state) do
     IO.puts uuid <> " joined the party"
-
-    ChatClients.put_client uuid, %{pid: self(), status: "available"}
+    ChatClients.put_client(uuid,
+      %{pid: self(), status: "available", trg_pid: nil})
 
     {:ok, response} = Poison.encode(%{
       "peersAvailable" => ChatClients.get_client_count("available")
