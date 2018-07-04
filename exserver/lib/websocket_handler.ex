@@ -23,7 +23,7 @@ defmodule WebsocketHandler do
     cond do
       type == "register" -> handle_register(uuid, state)
       type == "getpeer" -> handle_getpeer(uuid, state)
-	  type in ["icecandidate", "offer", "answer"]
+      type in ["icecandidate", "offer", "answer"]
         -> forward_content(state, content)
 	  true -> {:ok, state}
     end
