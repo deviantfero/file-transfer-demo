@@ -17,12 +17,29 @@ defmodule WebsocketHandler do
   end
 
   def websocket_handle({:text, content}, state) do
-    {:ok, %{"uuid" => uuid, "type" => type}} = Poison.decode(content)
+    {:ok, %{"uuid" => uuid,
+			"type" => type}} = Poison.decode(content)
     cond do
       type == "register" -> handle_register(uuid, state)
       type == "getpeer" -> handle_getpeer(uuid, state)
-      true -> {:ok, state}
+	  type in ["icecandidate", "offer", "answer"]
+        -> forward_content(state, content)
+	  true -> {:ok, state}
     end
+  end
+
+  def forward_content(state, content) do
+	{:ok, %{"uuid" => uuid,
+			"type" => type,
+			"content" => data}} = Poison.decode(content)
+
+	IO.puts "handling #{type}"
+	{_, sender} = ChatClients.get_clients("busy")
+    |> Enum.find(fn {k, _} -> k == uuid end)
+
+	{:ok, payload} = Poison.encode(data)
+	send(sender.trg_pid, {:text, payload})
+	{:ok, state}
   end
 
   def handle_getpeer(uuid, state) do
