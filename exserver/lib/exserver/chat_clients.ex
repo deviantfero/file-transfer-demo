@@ -28,6 +28,7 @@ defmodule Exserver.ChatClients do
     end
   end
 
+  @doc "add target PID to client, in order to forward messages"
   def assign_target(uuid, pid) do
     Agent.update(__MODULE__,
     &Kernel.update_in(&1, [uuid, :trg_pid], fn _ -> pid end))
@@ -39,9 +40,12 @@ defmodule Exserver.ChatClients do
     Enum.each(clients, fn {_k, v} -> send(v.pid, {:text, payload}) end)
   end
 
-  @doc "get the count of clients with {status}"
+  @doc "get the count of clients with {status} except for the one requesting it"
   def get_client_count(status) do
-    Agent.get(__MODULE__, &Enum.filter(&1, fn {_, v} -> v.status == status end)) 
-    |> (fn clients -> length(clients) - 1 end).()
+    clients = Agent.get(__MODULE__, &Enum.filter(&1, fn {_, v} -> v.status == status end)) 
+	cond do
+	  length(clients) == 0 -> 0
+	  true -> length(clients) - 1
+	end
   end
 end
