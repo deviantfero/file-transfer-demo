@@ -16,6 +16,7 @@ defmodule WebsocketHandler do
     :ok
   end
 
+  @doc "helper function that handles incoming messages"
   def websocket_handle({:text, content}, state) do
     {:ok, %{"uuid" => uuid,
 			"type" => type}} = Poison.decode(content)
@@ -42,6 +43,7 @@ defmodule WebsocketHandler do
 	{:ok, state}
   end
 
+  @doc "marks a client as busy and pairs it with another available client"
   def handle_getpeer(uuid, state) do
     available_clients = ChatClients.get_clients("available")
     candidates = Enum.filter(available_clients, fn {k, _} -> k != uuid end)
@@ -62,6 +64,7 @@ defmodule WebsocketHandler do
     {:ok, state}
   end
 
+  @doc "registers and adds a new client to ChatClients bucket"
   def handle_register(uuid, state) do
     IO.puts uuid <> " joined the party"
     ChatClients.put_client(uuid,
